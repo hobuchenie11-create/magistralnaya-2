@@ -8,6 +8,7 @@
 
 window.DomovedAnnouncement = (function () {
   var W = 1180, PAD = 56;
+  var NOTE_SIZE = 23, NOTE_LEAD = 31;
 
   var C = {
     head:  '#0E766D',
@@ -54,6 +55,24 @@ window.DomovedAnnouncement = (function () {
     return (lower ? m : m.charAt(0).toUpperCase() + m.slice(1)) + ' ' + p[0];
   }
 
+  /* Разбивает текст по словам под заданную ширину. Нужна для сноски. */
+  function wrapText(ctx, text, size, maxWidth) {
+    ctx.font = '400 ' + size + 'px ' + FACE;
+    var words = String(text).split(/\s+/);
+    var lines = [], line = '';
+    words.forEach(function (w) {
+      var probe = line ? line + ' ' + w : w;
+      if (ctx.measureText(probe).width > maxWidth && line) {
+        lines.push(line);
+        line = w;
+      } else {
+        line = probe;
+      }
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+
   function centered(ctx, text, size, weight, color, cx, y) {
     ctx.font = weight + ' ' + size + 'px ' + FACE;
     ctx.fillStyle = color;
@@ -77,7 +96,17 @@ window.DomovedAnnouncement = (function () {
     var bottom = restTop + 206;
     var debtTop = bottom + 24;
     if (hasDebt(m)) bottom = debtTop + 120;
-    var H = bottom + 62;
+
+    /* сноска внизу: считаем строки заранее, высота холста зависит от них */
+    var noteLines = [];
+    if (m.note) {
+      var probe = document.createElement('canvas').getContext('2d');
+      noteLines = wrapText(probe, m.note, NOTE_SIZE, W - PAD * 2);
+    }
+    var noteTop = bottom + 30;
+    var H = noteLines.length
+      ? noteTop + noteLines.length * NOTE_LEAD + 34
+      : bottom + 62;
     var scale = window.devicePixelRatio > 1 ? 2 : 1;
     canvas.width = W * scale;
     canvas.height = H * scale;
@@ -136,6 +165,16 @@ window.DomovedAnnouncement = (function () {
       ctx.fillRect(PAD, debtTop, W - PAD * 2, 120);
       centered(ctx, 'ЗАДОЛЖЕННОСТЬ СОБСТВЕННИКОВ', 27, '700', C.inkSoft, cx, debtTop + 22);
       centered(ctx, money(m.debt), 44, '700', C.ink, cx, debtTop + 56);
+    }
+
+    if (noteLines.length) {
+      ctx.font = '400 ' + NOTE_SIZE + 'px ' + FACE;
+      ctx.fillStyle = C.inkSoft;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      noteLines.forEach(function (line, i) {
+        ctx.fillText(line, PAD, noteTop + i * NOTE_LEAD);
+      });
     }
   }
 

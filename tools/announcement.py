@@ -50,6 +50,7 @@ WHITE = (255, 255, 255)
 # ── размеры холста ──────────────────────────────────────────
 W = 1180
 PAD = 56                     # поля
+NOTE_SIZE, NOTE_LEAD = 23, 31   # сноска внизу объявления
 # высота холста считается по составу: плашки расхода и задолженности
 # добавляются только тогда, когда соответствующие цифры переданы.
 
@@ -99,6 +100,21 @@ def date_ru(value):
     return f'{d}.{m}.{y}'
 
 
+def _wrap(draw, text, font, max_width):
+    """Разбивает текст по словам под заданную ширину."""
+    words, lines, line = str(text).split(), [], ''
+    for w in words:
+        probe = f'{line} {w}'.strip()
+        if draw.textlength(probe, font=font) > max_width and line:
+            lines.append(line)
+            line = w
+        else:
+            line = probe
+    if line:
+        lines.append(line)
+    return lines
+
+
 def _centered(draw, text, font, fill, cx, y):
     w = draw.textlength(text, font=font)
     draw.text((cx - w / 2, y), text, font=font, fill=fill)
@@ -106,12 +122,13 @@ def _centered(draw, text, font, fill, cx, y):
 
 def render(period, paid, interest, balance, balance_date,
            address='Магистральная, 2', out='announcement.png',
-           spent=None, spent_note='', debt=None):
+           spent=None, spent_note='', debt=None, note=''):
     """Рисует объявление и сохраняет в файл. Возвращает путь к файлу.
 
     spent      — израсходовано на работы за месяц; None → плашки не будет
     spent_note — на что израсходовано, короткой строкой
     debt       — задолженность собственников; None → плашки не будет
+    note       — сноска внизу объявления: пояснение к месяцу
     """
     has_spent = spent is not None
     has_debt = debt is not None
@@ -121,7 +138,13 @@ def render(period, paid, interest, balance, balance_date,
     debt_top = bottom + 24
     if has_debt:
         bottom = debt_top + 120
-    H = bottom + 62
+
+    note_top = bottom + 30
+    note_lines = []
+    if note:
+        probe = ImageDraw.Draw(Image.new('RGB', (W, 10)))
+        note_lines = _wrap(probe, note, _font('DejaVuSans.ttf', NOTE_SIZE), W - PAD * 2)
+    H = note_top + len(note_lines) * NOTE_LEAD + 34 if note_lines else bottom + 62
 
     img = Image.new('RGB', (W, H), PAGE_BG)
     d = ImageDraw.Draw(img)
@@ -186,6 +209,12 @@ def render(period, paid, interest, balance, balance_date,
         _centered(d, 'ЗАДОЛЖЕННОСТЬ СОБСТВЕННИКОВ', f_lab, INK_SOFT, cx, debt_top + 22)
         _centered(d, money(debt), f_val, INK, cx, debt_top + 58)
 
+    # сноска внизу
+    if note_lines:
+        f_small = _font('DejaVuSans.ttf', NOTE_SIZE)
+        for i, line in enumerate(note_lines):
+            d.text((PAD, note_top + i * NOTE_LEAD), line, font=f_small, fill=INK_SOFT)
+
     img.save(out, optimize=True)
     return out
 
@@ -204,11 +233,12 @@ def main():
     p.add_argument('--spent-note', default='', help='на что израсходовано')
     p.add_argument('--debt', type=float, default=None,
                    help='задолженность собственников; без него плашки не будет')
+    p.add_argument('--note', default='', help='сноска внизу объявления')
     a = p.parse_args()
 
     path = render(a.period, a.paid, a.interest, a.balance,
                   a.balance_date, a.address, a.out,
-                  spent=a.spent, spent_note=a.spent_note, debt=a.debt)
+                  spent=a.spent, spent_note=a.spent_note, debt=a.debt, note=a.note)
     print(path)
 
 
