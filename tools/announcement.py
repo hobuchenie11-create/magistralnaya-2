@@ -102,7 +102,10 @@ def date_ru(value):
 
 def _wrap(draw, text, font, max_width):
     """Разбивает текст по словам под заданную ширину."""
-    words, lines, line = str(text).split(), [], ''
+    # делим только по обычному пробелу: неразрывный (\u00a0) держит
+    # суммы вроде «1 939 000,00 ₽» одним куском
+    words = [w for w in str(text).split(' ') if w]
+    lines, line = [], ''
     for w in words:
         probe = f'{line} {w}'.strip()
         if draw.textlength(probe, font=font) > max_width and line:

@@ -58,7 +58,9 @@ window.DomovedAnnouncement = (function () {
   /* Разбивает текст по словам под заданную ширину. Нужна для сноски. */
   function wrapText(ctx, text, size, maxWidth) {
     ctx.font = '400 ' + size + 'px ' + FACE;
-    var words = String(text).split(/\s+/);
+    /* делим только по обычному пробелу: неразрывный (\u00a0)
+       держит суммы вроде «1 939 000,00 ₽» одним куском */
+    var words = String(text).split(' ').filter(Boolean);
     var lines = [], line = '';
     words.forEach(function (w) {
       var probe = line ? line + ' ' + w : w;
