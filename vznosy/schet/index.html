@@ -93,11 +93,11 @@
     </div>
 
     <details class="spent-more noprint" id="spentMore" hidden>
-      <summary>Подробнее о расходе за этот месяц</summary>
+      <summary id="spentMoreTitle">Подробнее о расходе за этот месяц</summary>
       <div class="body">
-        <p class="amount" id="spentMoreSum">—</p>
+        <p class="amount" id="spentMoreSum" hidden>—</p>
         <p id="spentMoreText"></p>
-        <p style="color:var(--ink-3); font-size:.86rem">Расходы со специального счёта возможны только на капитальный ремонт и по решению общего собрания собственников.</p>
+        <p id="spentMoreRule" style="color:var(--ink-3); font-size:.86rem">Расходы со специального счёта возможны только на капитальный ремонт и по решению общего собрания собственников.</p>
       </div>
     </details>
 
@@ -254,16 +254,30 @@
           m.spentNote || 'оплата работ со спецсчёта';
         spentCard.hidden = false;
 
-        /* кнопка с подробностями — только если они заполнены */
-        if (m.spentDetails) {
-          document.getElementById('spentMoreSum').textContent = A.money(m.spent);
-          document.getElementById('spentMoreText').textContent = m.spentDetails;
-          spentMore.hidden = false;
-        } else {
-          spentMore.hidden = true;
-        }
       } else {
         spentCard.hidden = true;
+      }
+
+      /* Раскрывающийся блок под объявлением: расшифровка расхода,
+         пояснение к месяцу или и то и другое. */
+      var sum = document.getElementById('spentMoreSum');
+      var text = document.getElementById('spentMoreText');
+      var rule = document.getElementById('spentMoreRule');
+      var title = document.getElementById('spentMoreTitle');
+      var hasSpentText = A.hasSpent(m) && m.spentDetails;
+
+      if (hasSpentText || m.note) {
+        sum.hidden = !hasSpentText;
+        if (hasSpentText) sum.textContent = A.money(m.spent);
+        rule.hidden = !hasSpentText;
+        title.textContent = hasSpentText
+          ? 'Подробнее о расходе за этот месяц'
+          : 'Пояснение к этому месяцу';
+        text.textContent = hasSpentText
+          ? (m.spentDetails + (m.note ? ' ' + m.note : ''))
+          : m.note;
+        spentMore.hidden = false;
+      } else {
         spentMore.hidden = true;
         spentMore.open = false;
       }
