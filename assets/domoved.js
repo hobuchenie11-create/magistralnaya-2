@@ -86,20 +86,53 @@
     bar.style.width = isFinite(val) ? Math.max(0, Math.min(100, val)) + '%' : '0%';
   });
 
-  /* ── кнопки «написать в Telegram» ─────────────────────── */
+  /* ── кнопки «написать председателю» ───────────────────── */
+  /* Кнопка объявляет только текст заявки:
+       <a data-tg-text="Здравствуйте! ...">Заказать в Telegram</a>
+       <a data-wa-text="Здравствуйте! ...">Заказать в WhatsApp</a>
+     Адрес собирается из data.js. Если канал в data.js не заполнен,
+     его кнопка скрывается — остальные работают как раньше.
+     Элемент с data-chat-hint получает подпись под кнопками. */
+  /* Номер приводится к виду, который понимает wa.me: только цифры,
+     с кодом страны. "8 913 ..." → "7913...", номер без кода — с 7. */
+  function waNumber(v) {
+    var d = String(v == null ? '' : v).replace(/\D/g, '');
+    if (d.length === 11 && d.charAt(0) === '8') d = '7' + d.slice(1);
+    if (d.length === 10) d = '7' + d;
+    return d.length >= 11 ? d : '';
+  }
+
   var tg = (D.contacts && D.contacts.telegram || '').trim().replace(/^@/, '');
-  document.querySelectorAll('[data-tg-text]').forEach(function (el) {
-    if (!tg) {
-      el.setAttribute('aria-disabled', 'true');
-      el.removeAttribute('href');
-      var hint = document.getElementById(el.getAttribute('data-tg-hint') || '');
-      if (hint) hint.textContent = 'Контакт для заявок ещё не указан в data.js';
-      return;
-    }
-    var text = el.getAttribute('data-tg-text');
-    el.setAttribute('href', 'https://t.me/' + tg + '?text=' + encodeURIComponent(text));
-    el.setAttribute('target', '_blank');
-    el.setAttribute('rel', 'noopener');
+  var wa = waNumber(D.contacts && D.contacts.whatsapp);
+
+  function wireChat(attr, link) {
+    document.querySelectorAll('[' + attr + ']').forEach(function (el) {
+      var href = link(el.getAttribute(attr) || '');
+      if (!href) {
+        el.hidden = true;
+        el.removeAttribute('href');
+        return;
+      }
+      el.hidden = false;
+      el.setAttribute('href', href);
+      el.setAttribute('target', '_blank');
+      el.setAttribute('rel', 'noopener');
+    });
+  }
+
+  wireChat('data-tg-text', function (text) {
+    return tg ? 'https://t.me/' + tg + '?text=' + encodeURIComponent(text) : '';
+  });
+  wireChat('data-wa-text', function (text) {
+    return wa ? 'https://wa.me/' + wa + '?text=' + encodeURIComponent(text) : '';
+  });
+
+  document.querySelectorAll('[data-chat-hint]').forEach(function (el) {
+    el.textContent =
+      (tg && wa) ? 'Откроется выбранный мессенджер с готовым текстом заявки'
+      : tg ? 'Откроется Telegram с готовым текстом заявки'
+      : wa ? 'Откроется WhatsApp с готовым текстом заявки'
+      : 'Контакт для заявок ещё не указан в data.js';
   });
 
   /* ── дата актуальности и счётчик пропусков ────────────── */
