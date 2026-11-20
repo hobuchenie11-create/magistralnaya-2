@@ -141,6 +141,14 @@
   <section aria-label="История по месяцам" id="historyWrap" hidden>
     <h2>По месяцам</h2>
     <p class="lede">Как менялся счёт с начала наблюдений.</p>
+    <aside class="note" id="calendarBalanceNote" aria-labelledby="calendarBalanceTitle" style="margin-bottom:20px">
+      <div>
+        <p id="calendarBalanceTitle"><strong>Как сравнивать остаток на сайте и в квитанции</strong></p>
+        <p>Сведения на сайте носят справочный характер. Здесь мы показываем поступления и расходы за календарный месяц — с 1-го числа по последний день месяца. Остаток рассчитан на конец этого месяца.</p>
+        <p>В квитанции указан фактический остаток по спецсчёту на дату полученной банковской выписки. Если выписка охватывает первые дни следующего месяца, в остаток уже могут входить авансовые и другие оплаты, поступившие в эти дни.</p>
+        <p><strong>Суммы на сайте и в квитанции могут отличаться, потому что относятся к разным датам.</strong> Для сравнения смотрите дату рядом с остатком.</p>
+      </div>
+    </aside>
     <div class="tablewrap">
       <table>
         <thead>
@@ -149,7 +157,7 @@
             <th scope="col" style="text-align:right">Оплачено</th>
             <th scope="col" style="text-align:right">Проценты</th>
             <th scope="col" style="text-align:right" id="thSpent" hidden>Израсходовано</th>
-            <th scope="col" style="text-align:right">Остаток</th>
+            <th scope="col" style="text-align:right">Остаток на конец месяца</th>
           </tr>
         </thead>
         <tbody id="histBody"></tbody>
