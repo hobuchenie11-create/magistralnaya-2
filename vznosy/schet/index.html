@@ -128,7 +128,7 @@
       <div class="stat" id="debtCard" hidden>
         <span class="lab">Задолженность собственников</span>
         <span class="val" id="sDebt">—</span>
-        <span class="sub">начислено и не оплачено, на текущую дату</span>
+        <span class="sub" id="sDebtDate">на конец выбранного месяца</span>
       </div>
       <div class="stat lead">
         <span class="lab">Остаток на счёте</span>
@@ -158,6 +158,7 @@
             <th scope="col" style="text-align:right">Проценты</th>
             <th scope="col" style="text-align:right" id="thSpent" hidden>Израсходовано</th>
             <th scope="col" style="text-align:right">Остаток на конец месяца</th>
+            <th scope="col" style="text-align:right" id="thDebt" hidden>Задолженность на конец месяца</th>
           </tr>
         </thead>
         <tbody id="histBody"></tbody>
@@ -214,11 +215,11 @@
       </div>
       <div class="note">
         <span class="bang">!</span>
-        <p><strong>Задолженность собственников</strong> — сколько взносов начислено по дому, но не оплачено. Показатель накопительный: он ведётся по факту начислений и меняется постоянно, поэтому публикуется только на текущий период. За прошлые месяцы он уже не актуален и в таблице ниже не приводится.</p>
+        <p><strong>Задолженность собственников</strong> — начисленные, но ещё не оплаченные взносы на конец выбранного месяца. Суммируются долги по отдельным помещениям; переплаты других собственников их не уменьшают. Оплаты следующего месяца будут учтены в сведениях за следующий месяц. Для каждого месяца сохраняется его собственный итог.</p>
       </div>
       <div class="note">
         <span class="bang">Σ</span>
-        <p><strong>Остаток на счёте</strong> — сколько накоплено на дату выписки. Деньги можно расходовать только на капитальный ремонт по решению общего собрания собственников.</p>
+        <p><strong>Остаток на счёте</strong> — расчётная сумма денег на конец выбранного календарного месяца. Деньги можно расходовать только на капитальный ремонт по решению общего собрания собственников.</p>
       </div>
     </div>
   </section>
@@ -263,14 +264,10 @@
     sel.value = String(months.length - 1);
     if (months.length > 1) pickWrap.hidden = false;
 
-    var lastIdx = months.length - 1;
-
     function show(i) {
       var m = months[i];
-      /* Задолженность — накопительный показатель на текущую дату, а не
-         итог месяца: показываем её только у самого свежего периода. */
-      var forPoster = (i === lastIdx) ? m : Object.assign({}, m, { debt: null });
-      A.draw(canvas, forPoster, (D.house && D.house.address) || '');
+      /* Долг зафиксирован на конец выбранного календарного месяца. */
+      A.draw(canvas, m, (D.house && D.house.address) || '');
       document.getElementById('curMonth').textContent = A.monthName(m.period, true);
       document.getElementById('sPaid').textContent = A.money(m.paid);
       document.getElementById('sInterest').textContent = A.money(m.interest);
@@ -279,8 +276,10 @@
         m.balanceDate ? 'на ' + A.dateRu(m.balanceDate) : 'накоплено всего';
 
       var debtCard = document.getElementById('debtCard');
-      if (i === lastIdx && A.hasDebt(m)) {
+      if (A.hasDebt(m)) {
         document.getElementById('sDebt').textContent = A.money(m.debt);
+        document.getElementById('sDebtDate').textContent =
+          m.balanceDate ? 'на ' + A.dateRu(m.balanceDate) : 'на конец выбранного месяца';
         debtCard.hidden = false;
       } else {
         debtCard.hidden = true;
@@ -325,7 +324,8 @@
         'Спецсчёт за ' + A.monthName(m.period, true) +
         ': оплачено ' + A.money(m.paid) +
         ', начислено процентов ' + A.money(m.interest) +
-        ', остаток ' + A.money(m.balance));
+        ', остаток ' + A.money(m.balance) +
+        (A.hasDebt(m) ? ', задолженность на конец месяца ' + A.money(m.debt) : ''));
     }
 
     sel.addEventListener('change', function () { show(Number(sel.value)); });
@@ -337,11 +337,14 @@
       /* колонку расходов показываем, только если они были хоть раз */
       var anySpent = months.some(A.hasSpent);
       if (anySpent) document.getElementById('thSpent').hidden = false;
+      var anyDebt = months.some(A.hasDebt);
+      if (anyDebt) document.getElementById('thDebt').hidden = false;
 
       months.slice().reverse().forEach(function (m) {
         var cells = [A.monthName(m.period), A.money(m.paid), A.money(m.interest)];
         if (anySpent) cells.push(A.hasSpent(m) ? A.money(m.spent) : '—');
         cells.push(A.money(m.balance));
+        if (anyDebt) cells.push(A.hasDebt(m) ? A.money(m.debt) : '—');
 
         var tr = document.createElement('tr');
         cells.forEach(function (t, k) {
